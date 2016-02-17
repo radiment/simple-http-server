@@ -1,17 +1,16 @@
 package http.server;
 
+import http.client.HttpClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLConnection;
+import java.nio.channels.AsynchronousSocketChannel;
 
 import static http.server.Server.Status.STARTED;
 import static http.server.Server.Status.STOPPED;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -21,11 +20,15 @@ import static org.mockito.Mockito.*;
  */
 public class ServerTest {
 
+    public static final int PORT = 8080;
+
     private Server server;
+    private HttpClient client;
 
     @Before
     public void setUp() throws Exception {
-        server = new Server(8080);
+        server = new Server(PORT).withHandler(new HttpSocketHandler());
+        client = new HttpClient().host("localhost").port(PORT);
     }
 
     @After
@@ -41,23 +44,22 @@ public class ServerTest {
         server.start();
         assertEquals(STARTED, server.getStatus());
         try {
-            connect();
+            assertNotNull(connect());
         } catch (IOException e) {
             fail(e.getMessage());
         }
     }
 
-    private URLConnection connect() throws IOException {
-        URL url = new URL("http", "localhost", 8080, "/");
-        URLConnection urlConnection = url.openConnection();
-        urlConnection.connect();
-        return urlConnection;
+    private String connect() throws IOException {
+        String result = client.get("/");
+        System.out.println(result);
+        return result;
     }
 
     @Test(expected = IOException.class)
     public void testNotStartedBefore() throws IOException {
         assertEquals(STOPPED, server.getStatus());
-        connect();
+        assertNotNull(connect());
         server.start();
     }
 
@@ -66,13 +68,13 @@ public class ServerTest {
         server.start();
         assertEquals(STARTED, server.getStatus());
         try {
-            connect();
+            assertNotNull(connect());
         } catch (IOException e) {
             fail(e.getMessage());
         }
         assertEquals(STARTED, server.getStatus());
         try {
-            connect();
+            assertNotNull(connect());
         } catch (IOException e) {
             fail(e.getMessage());
         }
@@ -84,9 +86,15 @@ public class ServerTest {
     @Test
     public void testListener() throws IOException, InterruptedException {
         SocketHandler handler = mock(SocketHandler.class);
-        server.setHandler(handler);
+
+        doAnswer(invocation -> {
+            ((AsynchronousSocketChannel) invocation.getArguments()[0]).close();
+            return null;
+        }).when(handler).handle(any());
+
+        server.withHandler(handler);
         server.start();
-        connect();
+        assertNotNull(connect());
         synchronized (this) {
             wait(100);
         }

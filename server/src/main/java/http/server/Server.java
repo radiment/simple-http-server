@@ -28,12 +28,16 @@ public class Server {
         this.status = Status.STOPPED;
     }
 
-    public void setHandler(SocketHandler handler) {
+    public Server withHandler(SocketHandler handler) {
         this.handler = handler;
+        return this;
     }
 
     public void start() throws IOException {
         listener = AsynchronousServerSocketChannel.open().bind(new InetSocketAddress(port));
+        if (handler == null) {
+            throw new IllegalStateException("handler not found");
+        }
         listener.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
             @Override
             public void completed(AsynchronousSocketChannel result, Void attachment) {
@@ -72,7 +76,7 @@ public class Server {
 
     public static void main(String[] args) throws InterruptedException, IOException {
         Server server = new Server(8080);
-        server.setHandler(new HttpSocketHandler());
+        server.withHandler(new HttpSocketHandler());
         server.start();
         while (Status.STARTED.equals(server.getStatus())) {
             Thread.sleep(1000);

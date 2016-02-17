@@ -19,3 +19,9 @@ configure(allprojects) {
     }
 }
 
+project('server') {
+    dependencies {
+        testCompile project(':client')
+    }
+}
+

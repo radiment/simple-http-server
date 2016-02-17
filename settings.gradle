@@ -1,5 +1,3 @@
 rootProject.name = 'simple-http-server'
 
-include("server")
-
-project(":server").name = 'server'
+include('server', 'client')
