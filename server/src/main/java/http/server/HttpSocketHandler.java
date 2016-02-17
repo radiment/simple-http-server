@@ -18,10 +18,15 @@ public class HttpSocketHandler implements SocketHandler {
         logger.trace("Handling request");
         logger.debug("Buffer read with: {}, {}, {}", buffer.position(), buffer.limit(),
                 new String(buffer.array(), 0, buffer.position()));
-        ByteBuffer writeBuffer = ByteBuffer.allocate(1024);
-        writeBuffer.put("HTTP/1.1 200 OK".getBytes());
-        writeBuffer.flip();
-        accept.write(writeBuffer);
+        buffer.clear();
+        buffer.put("HTTP/1.1 200 OK".getBytes());
+        buffer.flip();
+        accept.write(buffer);
+        buffer.clear();
+        buffer.put("\n".getBytes());
+        buffer.put("content".getBytes());
+        buffer.flip();
+        accept.write(buffer);
         try {
             accept.close();
         } catch (IOException e) {
