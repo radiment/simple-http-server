@@ -42,20 +42,17 @@ public class HttpClient {
     }
 
     public String get() throws IOException {
+        if (path == null) {
+            throw new IllegalArgumentException("path not found");
+        }
         this.method = "GET";
         SocketChannel socket = getSocketChannel();
         socket.write(prepareWrite());
         buffer.clear();
         StringBuilder builder = new StringBuilder();
-        try {
-            while (socket.read(buffer) != -1) {
-                builder.append(new String(buffer.array(), 0, buffer.position()));
-                buffer.clear();
-            }
-        } catch (IOException e) {
-            //TODO
-            e.printStackTrace();
-        }
+        socket.read(buffer);
+        builder.append(new String(buffer.array(), 0, buffer.position()));
+        buffer.clear();
         socket.close();
         content = builder.toString();
         return content;
@@ -75,15 +72,14 @@ public class HttpClient {
         buffer.put(ACCEPT_LANGUAGE).put(IS).put(acceptLanguage.getBytes()).put(END_LINE);
         params.forEach(this::putProperty);
         pasteCookies();
+        buffer.put(END_LINE);
         buffer.flip();
         return buffer;
     }
 
     private SocketChannel getSocketChannel() throws IOException {
         SocketChannel channel = SocketChannel.open();
-        if (!channel.connect(new InetSocketAddress(host, port))) {
-            throw new IOException("Can't establish connection.");
-        }
+        channel.connect(new InetSocketAddress(host, port));
         return channel;
     }
 
@@ -151,6 +147,11 @@ public class HttpClient {
 
     public String getContent() {
         return content;
+    }
+
+    public static void main(String[] args) throws IOException {
+        HttpClient client = new HttpClient();
+        System.out.println(client.path("/").get());
     }
 
 }
